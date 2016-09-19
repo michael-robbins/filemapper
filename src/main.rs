@@ -16,6 +16,8 @@ extern crate csv;
 
 use std::path::PathBuf;
 use getopts::Options;
+use std::io::Read;
+use std::fs::File;
 use std::process;
 use std::env;
 
@@ -89,8 +91,9 @@ fn main() {
         process::exit(1);
     }
 
-    let source_file = PathBuf::from(matches.opt_str("source-file").unwrap());
-    debug!("We got a --source-file of: '{}'", source_file.display());
+    let source_filename = PathBuf::from(matches.opt_str("source-file").unwrap());
+    debug!("We got a --source-file of: '{}'", source_filename.display());
+    let source_file = File::open(&source_filename).unwrap();
 
     // Parse each --mapping-file parameter
     // TODO: Support multiple matching columns, turning (u8, u8) -> Vec<(u8, u8)>
@@ -139,7 +142,7 @@ fn main() {
     info!("{:?}", mapping_files);
 
     // Figure out the input file's decompressor
-    let source_file_ext = source_file.extension();
+    let source_file_ext = source_filename.extension().unwrap();
     let decompressor: Box<Read> = match source_file_ext.to_str() {
         Some("bz2") => {
             debug!("Using BzDecompressor as the input decompressor.");
@@ -149,15 +152,12 @@ fn main() {
             debug!("Using GzDecoder as the input decompressor.");
             Box::new(GzDecoder::new(source_file).unwrap())
         },
-        Some(_) => {
+        Some(_) | None => {
             debug!("Assuming the file is uncompressed.");
             Box::new(source_file)
         },
-        None => {
-            warn!("Unable to aquire file extention for {}", source_file);
-            return Err(Error::new(ErrorKind::Other, format!("File extension invalid?")))
-        },
     };
+
     // Iterate over each line in the source file
     // Read the line and extract the 'key' we will match on
     // For each matting file, start reading from the beginning of the file and keep going until you have a 'match'
