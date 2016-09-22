@@ -1,0 +1,16 @@
+source:
+    filename: test.tsv
+    delimiter: tsv
+mappings:
+    - mapping-file-1:
+        filename: mapping-1.tsv
+        delimiter: tsv
+        source-key-index: 0
+        target-key-index: 0
+        target-match-range: 1-2
+    - mapping-file-2:
+        filename: mapping-2.csv
+        delimiter: csv
+        source-key-index: 0
+        target-key-index: 1
+        target-match-range: 0,2
