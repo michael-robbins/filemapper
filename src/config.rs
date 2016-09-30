@@ -1,5 +1,4 @@
-use yaml_rust::YamlLoader;
-use std::path::PathBuf;
+use yaml_rust::{Yaml, YamlLoader};
 use std::error::Error;
 use getopts::Options;
 use std::fs::File;
@@ -52,6 +51,70 @@ pub struct Config {
     pub mapping_files: Vec<MappingFile>,
 }
 
+impl Config {
+    fn parse_yaml(string: String) -> Option<Yaml> {
+        let yaml = match YamlLoader::load_from_str(&string) {
+            Ok(contents) => contents,
+            Err(err) => panic!("Couldn't read config file: {}", Error::description(&err)),
+        };
+
+        match yaml.get(0) {
+            Some(doc) => Some(doc.to_owned()),
+            None => None
+        }
+    }
+
+    fn new(config_filename: &str) -> Result<Config, String> {
+        // Load & parse the config file
+        let mut config_file_contents = String::new();
+
+        let read_result = File::open(config_filename).and_then(
+            |file| {let mut file = file; file.read_to_string(&mut config_file_contents)}
+        );
+
+        if read_result.is_err() {
+            return Err(String::from("Failed"));
+        }
+
+        let doc = match Config::parse_yaml(config_file_contents) {
+            Some(doc) => doc,
+            None => return Err(String::from("Failed to parse YAML config file")),
+        };
+
+        let source_delimiter = parse_delimiter(doc["source"]["delimiter"].as_str().unwrap());
+
+        let source_file = SourceFile {
+            filename: String::from(doc["source"]["filename"].as_str().unwrap()),
+            delimiter: source_delimiter,
+        };
+
+        let mut mapping_files: Vec<MappingFile> = vec!();
+
+        // TODO: Check once the latest version of this crate is pushed implementing ToIterator
+        for i in 0 .. 100 {
+            let mapping_file = &doc["mappings"][i];
+
+            if mapping_file.is_badvalue() {
+                // No more elements in the 'mappings' list to parse
+                break;
+            } else {
+                mapping_files.push(MappingFile {
+                    filename: String::from(mapping_file["filename"].as_str().unwrap()),
+                    delimiter: parse_delimiter(mapping_file["delimiter"].as_str().unwrap()),
+                    source_key_index: mapping_file["source-key-index"].as_i64().unwrap(),
+                    target_key_index: mapping_file["target-key-index"].as_i64().unwrap(),
+                    target_match_range: String::from(mapping_file["target-match-range"].as_str().unwrap()),
+                });
+            }
+        }
+
+        Ok(Config {
+            source_file: source_file,
+            mapping_files: mapping_files,
+        })
+    }
+}
+
 
 fn print_usage(program: &str, opts: &Options) {
     let usage = format!("\nUsage: {} [-h] [-v] -- See below for all options", program);
@@ -61,6 +124,16 @@ fn print_usage(program: &str, opts: &Options) {
 pub fn error_usage(message: &str, program: &str, opts: &Options) {
     error!("{}", message);
     print_usage(&program, &opts);
+}
+
+fn parse_delimiter(foo: &str) -> char {
+    let default_delimiter = ',';
+    match foo.as_ref() {
+        "tsv" => '\t',
+        "csv" => ',',
+        "psv" => '|',
+        _ => default_delimiter,
+    }
 }
 
 pub fn parse_args(args: Vec<String>) -> Result<Config, String> {
@@ -99,70 +172,12 @@ pub fn parse_args(args: Vec<String>) -> Result<Config, String> {
     // Parse --config-file parameter
     let config_filename;
     if matches.opt_present("config-file") {
-        config_filename = PathBuf::from(matches.opt_str("config-file").unwrap());
-        debug!("We got a --config-file of: '{}'", config_filename.display());
+        config_filename = matches.opt_str("config-file").unwrap();
+        debug!("We got a --config-file of: '{}'", config_filename);
     } else {
         error_usage("We need a --config-file parameter", &program, &opts);
         process::exit(1);
     }
 
-    debug!("Using config-file: '{}'", config_filename.display());
-
-    // Load & parse the config file
-    let mut config_file_contents = String::new();
-
-    if let Err(err) = File::open(config_filename).unwrap().read_to_string(&mut config_file_contents) {
-        panic!("Couldn't read config file: {}", Error::description(&err))
-    }
-
-    let config_file = match YamlLoader::load_from_str(&config_file_contents) {
-        Ok(yaml) => yaml,
-        Err(err) => panic!("Couldn't read config file: {}", Error::description(&err)),
-    };
-
-    fn parse_delimiter(foo: &str) -> char {
-        let default_delimiter = ',';
-        match foo.as_ref() {
-            "tsv" => '\t',
-            "csv" => ',',
-            "psv" => '|',
-            _ => default_delimiter,
-        }
-    }
-
-    if let Some(doc) = config_file.get(0) {
-
-        let source_delimiter = parse_delimiter(doc["source"]["delimiter"].as_str().unwrap());
-
-        let source_file = SourceFile {
-            filename: String::from(doc["source"]["filename"].as_str().unwrap()),
-            delimiter: source_delimiter,
-        };
-
-        let mut mapping_files: Vec<MappingFile> = vec!();
-
-        for i in 0 .. 100 {
-            let mapping_file = &doc["mappings"][i];
-
-            if mapping_file.is_badvalue() {
-                // No more elements in the 'mappings' list to parse
-                break;
-            } else {
-                mapping_files.push(MappingFile {
-                    filename: String::from(mapping_file["filename"].as_str().unwrap()),
-                    delimiter: parse_delimiter(mapping_file["delimiter"].as_str().unwrap()),
-                    source_key_index: mapping_file["source-key-index"].as_i64().unwrap(),
-                    target_key_index: mapping_file["target-key-index"].as_i64().unwrap(),
-                    target_match_range: String::from(mapping_file["target-match-range"].as_str().unwrap()),
-                });
-            }
-        }
-
-        Ok(Config {
-            source_file: source_file,
-            mapping_files: mapping_files,
-        })
-    } else {
-        Err(String::from("Incorrectly formatted YAML?"))
-    }
+    Config::new(&config_filename)
 }

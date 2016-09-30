@@ -17,10 +17,10 @@ extern crate csv;
 
 use std::io::{Read,BufReader,BufRead};
 use std::path::PathBuf;
+use std::ffi::OsStr;
 use std::fs::File;
+use std::process;
 use std::env;
-
-
 
 // Optional decompressors for source/mapping files
 use flate2::read::GzDecoder;
@@ -29,53 +29,101 @@ use bzip2::read::BzDecoder;
 mod config;
 use config::parse_args;
 
-fn main() {
-    let args = env::args().collect::<Vec<String>>();
-    let mut config = parse_args(args).unwrap();
 
-    // Figure out the input file's decompressor
-    let source_file_path = PathBuf::from(config.source_file.filename);
-    let source_file_ext = source_file_path.extension().unwrap();
-    let source_file = File::open(&source_file_path).unwrap();
 
-    let decompressor: Box<Read> = match source_file_ext.to_str() {
+fn open_file(filename: &str) -> Box<Read> {
+    let file_path = PathBuf::from(filename);
+    let file = match File::open(&file_path) {
+        Ok(file) => file,
+        Err(_) => {
+            error!("Unable to open file '{}'", file_path.display());
+            process::exit(1);
+        }
+    };
+
+    let decompressor: Box<Read> = match file_path.extension().unwrap_or(OsStr::new("")).to_str() {
         Some("bz2") => {
             debug!("Using BzDecompressor as the input decompressor.");
-            Box::new(BzDecoder::new(source_file))
+            Box::new(BzDecoder::new(file))
         },
         Some("gz") => {
             debug!("Using GzDecoder as the input decompressor.");
-            Box::new(GzDecoder::new(source_file).unwrap())
+            Box::new(GzDecoder::new(file).unwrap())
         },
         Some(_) | None => {
             debug!("Assuming the file is uncompressed.");
-            Box::new(source_file)
+            Box::new(file)
         },
     };
 
+    decompressor
+}
+
+fn main() {
+    let args = env::args().collect::<Vec<String>>();
+    let mut config = parse_args(args).unwrap();
+    let source_file = open_file(&config.source_file.filename);
+
     // Iterate over each line in the source file
-    let source_lines = BufReader::new(decompressor).lines();
-    for line in source_lines {
-        let line = line.unwrap();
-        println!("{}", line);
+    for source_line in BufReader::new(source_file).lines() {
+        let source_line = source_line.unwrap();
+        let mut output: Vec<String> = vec!();
 
         // For each mapping file we're 'mapping', extract the source line's column and find it in the mapping file's column
         for mapping_data in config.mapping_files.iter_mut() {
-            let mapping_file_path = PathBuf::from(&mapping_data.filename);
-            let mapping_file = File::open(mapping_file_path).unwrap();
-            let target_key_index = mapping_data.target_key_index;
-            let source_key = line.split(config.source_file.delimiter).nth(mapping_data.source_key_index as usize).unwrap();
+            let source_key = source_line.split(config.source_file.delimiter).nth(mapping_data.source_key_index as usize);
 
-            let target_ranges = mapping_data.match_range();
-            println!("{}", source_key);
-            println!("{}", target_key_index);
-            println!("{:?}", mapping_file);
-            println!("{:?}", target_ranges);
+            if source_key.is_none() {
+                error!("Unable to extract the source_key from line '{}' with index {}, skipping this mapping file", source_line, mapping_data.source_key_index);
+                continue;
+            }
+
+            let source_key = source_key.unwrap();
+
+            for target_line in BufReader::new(open_file(&mapping_data.filename)).lines() {
+                if target_line.is_err() {
+                    error!("Unable to read line from mapping file {}", mapping_data.filename);
+                    break;
+                }
+
+                let target_line = target_line.unwrap();
+                let target_key = target_line.split(mapping_data.delimiter).nth(mapping_data.target_key_index as usize).unwrap();
+
+                if source_key == target_key {
+                    for range in mapping_data.match_range().iter() {
+                        if range.0 == range.1 {
+                            let cell = target_line.split(mapping_data.delimiter).nth(range.0 as usize).unwrap().to_owned();
+                            output.push(cell);
+                        } else {
+                            for cell in target_line.split(mapping_data.delimiter).skip(range.0 as usize).take((range.1 - range.0 + 1) as usize) {
+                                output.push(cell.to_owned());
+                            }
+                        }
+                    }
+
+                    // We've found our match, don't keep looking
+                    break;
+                }
+            }
+        }
+
+        if output.len() > 0 {
+            // Build a new line to emit, with the output vec appended to the end
+            let mut new_line: Vec<String> = source_line.split(config.source_file.delimiter).map(|x| String::from(x)).collect();
+            new_line.append(&mut output);
+
+            let new_line = new_line.iter().fold(String::new(), |acc, element|
+                if acc == "" {
+                    element.to_owned()
+                } else {
+                    format!("{}{}{}",acc, config.source_file.delimiter, element)
+                }
+            );
+
+            println!("{}", new_line);
+        } else {
+            // Just emit the current line
+            println!("{}", source_line);
         }
     }
-
-    // For each matting file, start reading from the beginning of the file and keep going until you have a 'match'
-    // When a match is found, take the column of interest and append it to the source file's line
-    // TODO: Figure out how to read from a buffered reader and write to the underlying file?
-    // TODO: Can we save the position of the open file, and map that position to a new 'column' of data to write before the line break?
 }
