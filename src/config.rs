@@ -1,49 +1,15 @@
+use std::io::Read;
 use yaml_rust::{Yaml, YamlLoader};
 use std::error::Error;
 use getopts::Options;
 use std::fs::File;
-use std::io::Read;
 use std::process;
 use env_logger;
 use std::env;
 
+use mapping_file::MappingFile;
+use source_file::SourceFile;
 
-#[derive(Debug)]
-pub struct SourceFile {
-    pub filename: String,
-    pub delimiter: char,
-}
-
-
-#[derive(Debug)]
-pub struct MappingFile {
-    pub filename: String,
-    pub delimiter: char,
-    pub source_key_index: i64,
-    pub target_key_index: i64,
-    target_match_range: String,
-}
-
-impl MappingFile {
-    pub fn match_range(&self) -> Vec<(u32, u32)> {
-        fn parse_dash(source: &str) -> (u32, u32) {
-            assert!(!source.contains(','));
-            let bounds: Vec<u32> = source.split('-').map(|x| x.parse::<u32>().unwrap()).collect();
-            assert_eq!(bounds.len(), 2);
-            (bounds[0], bounds[1])
-        }
-
-        self.target_match_range.split(',').map(|range|
-            if range.contains("-") {
-                parse_dash(range)
-            } else {
-                // It's just a number
-                let range = range.parse::<u32>().unwrap();
-                (range, range)
-            }
-        ).collect()
-    }
-}
 
 #[derive(Debug)]
 pub struct Config {
@@ -98,13 +64,19 @@ impl Config {
                 // No more elements in the 'mappings' list to parse
                 break;
             } else {
-                mapping_files.push(MappingFile {
-                    filename: String::from(mapping_file["filename"].as_str().unwrap()),
-                    delimiter: parse_delimiter(mapping_file["delimiter"].as_str().unwrap()),
-                    source_key_index: mapping_file["source-key-index"].as_i64().unwrap(),
-                    target_key_index: mapping_file["target-key-index"].as_i64().unwrap(),
-                    target_match_range: String::from(mapping_file["target-match-range"].as_str().unwrap()),
-                });
+                let mut mapping_instance = MappingFile::new(
+                    mapping_file["filename"].as_str().unwrap(),
+                    parse_delimiter(mapping_file["delimiter"].as_str().unwrap()),
+                    mapping_file["source-key-index"].as_i64().unwrap() as u64,
+                    mapping_file["target-key-index"].as_i64().unwrap() as u64,
+                    mapping_file["target-match-range"].as_str().unwrap(),
+                );
+
+                if mapping_file["in-memory"].as_str().unwrap() == "true" {
+                    mapping_instance.load_into_memory();
+                }
+
+                mapping_files.push(mapping_instance);
             }
         }
 

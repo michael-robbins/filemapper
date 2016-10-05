@@ -7,8 +7,10 @@ mappings:
         source-key-index: 0
         target-key-index: 0
         target-match-range: 1-2
+        in-memory: true
     -   filename: data/mapping-2.csv
         delimiter: csv
         source-key-index: 0
         target-key-index: 1
         target-match-range: 0,2
+        in-memory: false
