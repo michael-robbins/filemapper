@@ -18,12 +18,12 @@ The user can provide individual column indexes per mapping file and select which
 3. Done! Test it out by using the supplied test data!
 
 ## Usage
-  Usage: target\debug\file_mapper.exe [-h] [-v] -- See below for all options
+    Usage: target\debug\file_mapper.exe [-h] [-v] -- See below for all options
 
-  Options:
-      -h, --help          Print out this help.
-      -v, --verbose       Prints out more info (able to be applied up to 3
-                          times)
-          --config-file /path/to/config.yaml
-                          Configuration file in YAML that contains most other
-                          settings
+    Options:
+        -h, --help          Print out this help.
+        -v, --verbose       Prints out more info (able to be applied up to 3
+                            times)
+            --config-file /path/to/config.yaml
+                            Configuration file in YAML that contains most other
+                            settings
