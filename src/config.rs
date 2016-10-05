@@ -116,7 +116,6 @@ pub fn parse_args(args: Vec<String>) -> Result<Config, String> {
     opts.optflag("h", "help", "Print out this help.");
     opts.optflagmulti("v", "verbose", "Prints out more info (able to be applied up to 3 times)");
     opts.optopt("", "config-file", "Configuration file in YAML that contains most other settings", "/path/to/config.yaml");
-    opts.optopt("", "cache-policy", "HEAVY means we will cache the mapping-file in RAM\nLIGHT means we will not", "[LIGHT|HEAVY]");
 
     // Parse the user provided parameters matching them to the options specified above
     let matches = match opts.parse(args) {
