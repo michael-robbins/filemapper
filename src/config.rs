@@ -1,8 +1,8 @@
-use std::io::Read;
 use yaml_rust::{Yaml, YamlLoader};
 use std::error::Error;
 use getopts::Options;
 use std::fs::File;
+use std::io::Read;
 use std::process;
 use env_logger;
 use std::env;

@@ -2,6 +2,7 @@ use std::io::{BufRead,BufReader};
 use std::collections::HashMap;
 use helpers::open_file;
 
+
 #[derive(Debug)]
 pub struct MappingFile {
     pub filename: String,

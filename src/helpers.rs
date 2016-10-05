@@ -9,6 +9,7 @@ use std::process;
 use flate2::read::GzDecoder;
 use bzip2::read::BzDecoder;
 
+
 pub fn open_file(filename: &str) -> Box<Read> {
     let file_path = PathBuf::from(filename);
     let file = match File::open(&file_path) {

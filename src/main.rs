@@ -27,6 +27,7 @@ use helpers::{open_file, build_new_line};
 mod mapping_file;
 mod source_file;
 
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut config = parse_args(args).unwrap();
