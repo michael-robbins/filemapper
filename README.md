@@ -18,7 +18,7 @@ The user can provide individual column indexes per mapping file and select which
 3. Done! Test it out by using the supplied test data!
 
 ## Usage
-    Usage: target\debug\file_mapper.exe [-h] [-v] -- See below for all options
+    Usage: filemapper [-h] [-v] -- See below for all options
 
     Options:
         -h, --help          Print out this help.
