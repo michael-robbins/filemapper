@@ -56,28 +56,25 @@ impl Config {
 
         let mut mapping_files: Vec<MappingFile> = vec!();
 
-        // TODO: Check once the latest version of this crate is pushed implementing ToIterator
-        for i in 0 .. 100 {
-            let mapping_file = &doc["mappings"][i];
+        match doc["mappings"].as_vec() {
+            Some(config_mapping_files) => {
+                for mapping_file in config_mapping_files {
+                    let mut mapping_instance = MappingFile::new(
+                        mapping_file["filename"].as_str().unwrap(),
+                        parse_delimiter(mapping_file["delimiter"].as_str().unwrap()),
+                        mapping_file["source-key-index"].as_i64().unwrap() as u64,
+                        mapping_file["target-key-index"].as_i64().unwrap() as u64,
+                        mapping_file["target-match-range"].as_str().unwrap(),
+                    );
 
-            if mapping_file.is_badvalue() {
-                // No more elements in the 'mappings' list to parse
-                break;
-            } else {
-                let mut mapping_instance = MappingFile::new(
-                    mapping_file["filename"].as_str().unwrap(),
-                    parse_delimiter(mapping_file["delimiter"].as_str().unwrap()),
-                    mapping_file["source-key-index"].as_i64().unwrap() as u64,
-                    mapping_file["target-key-index"].as_i64().unwrap() as u64,
-                    mapping_file["target-match-range"].as_str().unwrap(),
-                );
+                    if mapping_file["in-memory"].as_bool().unwrap() {
+                        mapping_instance.load_into_memory();
+                    }
 
-                if mapping_file["in-memory"].as_str().unwrap() == "true" {
-                    mapping_instance.load_into_memory();
+                    mapping_files.push(mapping_instance);
                 }
-
-                mapping_files.push(mapping_instance);
-            }
+            },
+            None => return Err(String::from("Unable to parse config file correctly."))
         }
 
         Ok(Config {

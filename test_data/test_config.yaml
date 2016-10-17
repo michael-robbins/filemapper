@@ -1,14 +1,14 @@
 source:
-    filename: data/source.tsv
+    filename: test_data/source.tsv
     delimiter: tsv
 mappings:
-    -   filename: data/mapping-1.tsv
+    -   filename: test_data/mapping-1.tsv
         delimiter: tsv
         source-key-index: 0
         target-key-index: 0
         target-match-range: 1-2
         in-memory: true
-    -   filename: data/mapping-2.csv
+    -   filename: test_data/mapping-2.csv
         delimiter: csv
         source-key-index: 0
         target-key-index: 1

@@ -40,10 +40,16 @@ fn main() {
 
         // For each mapping file we're 'mapping', extract the source line's column and find it in the mapping file's column
         for mapping_file in config.mapping_files.iter_mut() {
+            // Extract the source key
             match source_line.split(config.source_file.delimiter).nth(mapping_file.source_key_index as usize) {
                 Some(source_key) => {
+                    // Find a match in each mapping file
                     match mapping_file.find_match(&source_key) {
-                        Some(data) => {let mut data = data; output.append(&mut data)},
+                        Some(data) => {
+                            // Attach the matched onto the end of the line
+                            output.append(&mut data.clone())
+                        },
+                        // TODO: This needs to append as many columns as the mapping_file would of returned in data
                         None => output.push(String::from(""))
                     }
                 },
