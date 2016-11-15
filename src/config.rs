@@ -39,7 +39,7 @@ impl Config {
         );
 
         if read_result.is_err() {
-            return Err(String::from("Failed"));
+            return Err(String::from("Failed to read config file"));
         }
 
         let doc = match Config::parse_yaml(config_file_contents) {
