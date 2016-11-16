@@ -123,6 +123,7 @@ pub fn parse_args(args: Vec<String>) -> Result<Config, String> {
     // Check if the 'h' flag was present, print the usage if it was, then exit
     if matches.opt_present("h") {
         print_usage(&program, &opts);
+        process::exit(0);
     }
 
     // Configure logging verbosity and initialise the logger

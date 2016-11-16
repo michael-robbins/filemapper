@@ -4,10 +4,12 @@ File Mapper will take a source file and multiple mapping files, and given a comm
 
 The user can provide individual column indexes per mapping file and select which columns from the mapping file(s) they with to emit along with the source file.
 
+Review test_data/test_config.yaml for an example configuration file.
+
 ## Features
-* Ability to take an arbitrary number of mapping files, each with their own common index pair
-* Ability to output any number of individual (or ranges of) columns in the mapping file(s)
-* Will be able to store mapping files in-memory (fast) or look up mapping files on-demand (slow)
+* Ability to take an arbitrary number of mapping files, each with their own common index pair (used to match on)
+* Ability to output any number of individual (or ranges of) columns in the mapping file(s), for example, column 2, 3 and 4 or columns 1, 2 and 4 to 9
+* Will be able to store mapping files in-memory (fast) or look up mapping files on-demand (slow) to tune RAM consumption
 
 ## Installation
 ### From source (assuming you have Rust & Cargo installed)
