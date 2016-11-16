@@ -2,6 +2,8 @@
 name = "file_mapper"
 version = "0.1.0"
 authors = ["Michael Robbins <michael@dalmura.com.au>"]
+homepage = "https://github.com/michael-robbins/filemapper"
+repository = "https://github.com/michael-robbins/filemapper"
 
 [dependencies]
 yaml-rust = "0.*.*"
