@@ -6,6 +6,7 @@ CONF='test_config.yaml'
 OUTPUT='/tmp/output.tsv'
 EXPECTED_OUTPUT='expected_output.tsv'
 
+cargo build
 $BIN --config-file $CONF > /tmp/output.tsv
 
 OUTPUT_HASH=`md5sum ${OUTPUT} | awk '{print $1}'`

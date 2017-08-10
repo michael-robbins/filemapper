@@ -49,10 +49,12 @@ impl Config {
 
         let source_delimiter = parse_delimiter(doc["source"]["delimiter"].as_str().unwrap());
 
-        let source_file = SourceFile {
-            filename: String::from(doc["source"]["filename"].as_str().unwrap()),
-            delimiter: source_delimiter,
-        };
+        println!("{:?}", doc["source"]["target-match-range"].as_str());
+        let source_file = SourceFile::new(
+            String::from(doc["source"]["filename"].as_str().unwrap()),
+            source_delimiter,
+            String::from(doc["source"]["target-match-range"].as_str().unwrap()),
+        );
 
         let mut mapping_files: Vec<MappingFile> = vec!();
 
@@ -92,12 +94,12 @@ fn print_usage(program: &str, opts: &Options) {
 
 pub fn error_usage(message: &str, program: &str, opts: &Options) {
     error!("{}", message);
-    print_usage(&program, &opts);
+    print_usage(program, opts);
 }
 
-fn parse_delimiter(foo: &str) -> char {
+fn parse_delimiter(delimiter: &str) -> char {
     let default_delimiter = ',';
-    match foo.as_ref() {
+    match delimiter.as_ref() {
         "tsv" => '\t',
         "csv" => ',',
         "psv" => '|',

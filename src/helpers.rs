@@ -1,6 +1,5 @@
 
 use std::path::PathBuf;
-use std::ffi::OsStr;
 use std::io::Read;
 use std::fs::File;
 use std::process;
@@ -20,7 +19,7 @@ pub fn open_file(filename: &str) -> Box<Read> {
         }
     };
 
-    let decompressor: Box<Read> = match file_path.extension().unwrap_or(OsStr::new("")).to_str() {
+    let decompressor: Box<Read> = match file_path.extension().unwrap_or_default().to_str() {
         Some("bz2") => {
             debug!("Using BzDecompressor as the input decompressor.");
             Box::new(BzDecoder::new(file))
@@ -38,23 +37,66 @@ pub fn open_file(filename: &str) -> Box<Read> {
     decompressor
 }
 
-pub fn build_new_line(line: &str, delimiter: char, extra: &mut Vec<String>) -> String{
-    if extra.len() > 0 {
+pub fn build_new_line(line: Vec<String>, delimiter: char, extra: &mut Vec<String>) -> String{
+    if extra.is_empty() {
         // Turn the &str into a vector of strings, so we can append 'extra'
-        let mut new_line: Vec<String> = line.split(delimiter).map(|x| String::from(x)).collect();
+        let mut new_line: Vec<String> = line.into_iter().map(String::from).collect();
         new_line.append(extra);
 
-        let new_line = new_line.iter().fold(String::new(), |acc, element|
+        new_line.iter().fold(String::new(), |acc, element|
             if acc == "" {
                 element.to_owned()
             } else {
                 format!("{}{}{}",acc, delimiter, element)
             }
-        );
-
-        new_line
+        )
     } else {
         // Just emit the current line
-        line.to_owned()
+        line.into_iter().fold(String::new(), |acc, element|
+            if acc == "" {
+                element.to_owned()
+            } else {
+                format!("{}{}{}",acc, delimiter, element)
+            }
+        )
     }
+}
+
+pub fn match_ranges(range_string: &str) -> Vec<(u32, u32)> {
+    fn parse_dash(source: &str) -> (u32, u32) {
+        assert!(!source.contains(','));
+        let bounds: Vec<u32> = source.split('-')
+                                     .map(|bound| bound.parse::<u32>()
+                                                       .expect("Unable to process target-match-range bound into a number"))
+                                     .collect();
+        assert_eq!(bounds.len(), 2);
+        (bounds[0], bounds[1])
+    }
+
+    range_string.split(',').map(|range|
+        if range.contains('-') {
+            parse_dash(range)
+        } else {
+            // It's just a number
+            let range = range.parse::<u32>().unwrap();
+            (range, range)
+        }
+    ).collect()
+}
+
+pub fn extract_ranges(line: &[String], ranges: &[(u32, u32)]) -> Vec<String> {
+    let mut extracted: Vec<String> = vec!();
+
+    for range in ranges {
+        if range.0 == range.1 {
+            // Just extract a single element
+            extracted.push(line[range.0 as usize].to_owned());
+        } else {
+            for cell in line.iter().skip(range.0 as usize).take((range.1 - range.0 + 1) as usize) {
+                extracted.push(cell.to_owned())
+            }
+        }
+    }
+
+    extracted
 }
