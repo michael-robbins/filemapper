@@ -37,31 +37,6 @@ pub fn open_file(filename: &str) -> Box<Read> {
     decompressor
 }
 
-pub fn build_new_line(line: Vec<String>, delimiter: char, extra: &mut Vec<String>) -> String{
-    if extra.is_empty() {
-        // Turn the &str into a vector of strings, so we can append 'extra'
-        let mut new_line: Vec<String> = line.into_iter().map(String::from).collect();
-        new_line.append(extra);
-
-        new_line.iter().fold(String::new(), |acc, element|
-            if acc == "" {
-                element.to_owned()
-            } else {
-                format!("{}{}{}",acc, delimiter, element)
-            }
-        )
-    } else {
-        // Just emit the current line
-        line.into_iter().fold(String::new(), |acc, element|
-            if acc == "" {
-                element.to_owned()
-            } else {
-                format!("{}{}{}",acc, delimiter, element)
-            }
-        )
-    }
-}
-
 pub fn match_ranges(range_string: &str) -> Vec<(u32, u32)> {
     fn parse_dash(source: &str) -> (u32, u32) {
         assert!(!source.contains(','));
@@ -84,16 +59,16 @@ pub fn match_ranges(range_string: &str) -> Vec<(u32, u32)> {
     ).collect()
 }
 
-pub fn extract_ranges(line: &[String], ranges: &[(u32, u32)]) -> Vec<String> {
+pub fn extract_ranges(line: &[&str], ranges: &[(u32, u32)]) -> Vec<String> {
     let mut extracted: Vec<String> = vec!();
 
     for range in ranges {
         if range.0 == range.1 {
             // Just extract a single element
-            extracted.push(line[range.0 as usize].to_owned());
+            extracted.push(line[(range.0 - 1) as usize].to_owned());
         } else {
-            for cell in line.iter().skip(range.0 as usize).take((range.1 - range.0 + 1) as usize) {
-                extracted.push(cell.to_owned())
+            for cell in line.iter().skip((range.0 - 1) as usize).take((1 + range.1 - range.0) as usize) {
+                extracted.push(String::from(*cell))
             }
         }
     }

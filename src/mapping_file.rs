@@ -51,9 +51,10 @@ impl MappingFile {
         if self.preloaded_mappings {
             match self.mappings.get(source_key) {
                 Some(target_line) => {
-                    Some(extract_ranges(target_line, &self.target_match_ranges))
+                    let ref_target_line: Vec<&str> = target_line.iter().map(|s| &**s).collect();
+                    Some(extract_ranges(&ref_target_line, &self.target_match_ranges))
                 },
-                None => None
+                None => None,
             }
         } else {
             // Open the file and scan through it on-demand
@@ -64,7 +65,8 @@ impl MappingFile {
                                                   .expect(&format!("Unable to parse the target key from mapping file {}", self.filename));
 
                 if source_key == target_key {
-                    return Some(extract_ranges(&target_line_parts.map(String::from).collect::<Vec<String>>(), &self.target_match_ranges))
+                    let ref_target_line_parts: Vec<&str> = target_line_parts.collect();
+                    return Some(extract_ranges(&ref_target_line_parts, &self.target_match_ranges))
                 }
             };
 

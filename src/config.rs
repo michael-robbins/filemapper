@@ -49,7 +49,6 @@ impl Config {
 
         let source_delimiter = parse_delimiter(doc["source"]["delimiter"].as_str().unwrap());
 
-        println!("{:?}", doc["source"]["target-match-range"].as_str());
         let source_file = SourceFile::new(
             String::from(doc["source"]["filename"].as_str().unwrap()),
             source_delimiter,

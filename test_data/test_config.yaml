@@ -1,17 +1,17 @@
 source:
     filename: source.tsv
     delimiter: tsv
-    target-match-range: '0'
+    target-match-range: '1-3'
 mappings:
     -   filename: mapping-1.tsv
         delimiter: tsv
         source-key-index: 0
         target-key-index: 0
-        target-match-range: '1-2'
+        target-match-range: '2-3'
         in-memory: true
     -   filename: mapping-2.csv
         delimiter: csv
         source-key-index: 0
         target-key-index: 1
-        target-match-range: '0,2'
-        in-memory: false
+        target-match-range: '1'
+        in-memory: true
