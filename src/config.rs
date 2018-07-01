@@ -68,8 +68,10 @@ impl Config {
                         mapping_file["target-match-range"].as_str().unwrap(),
                     );
 
-                    if mapping_file["in-memory"].as_bool().unwrap() {
-                        mapping_instance.load_into_memory();
+                    let cache_method = mapping_file["in-memory"]["method"].as_str();
+                    if cache_method.is_some() {
+                        let cache_size = mapping_file["in-memory"]["size"].as_i64();
+                        mapping_instance.cache(cache_method.unwrap(), cache_size.unwrap());
                     }
 
                     mapping_files.push(mapping_instance);
@@ -135,7 +137,7 @@ pub fn parse_args(args: Vec<String>) -> Result<Config, String> {
         _ => {env::set_var("RUST_LOG", "trace")}, // Provided > 2 -v flags
     }
 
-    env_logger::init().unwrap();
+    env_logger::init();
 
     debug!("Applied log level: {}", env::var("RUST_LOG").unwrap());
 

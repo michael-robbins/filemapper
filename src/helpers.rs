@@ -26,7 +26,7 @@ pub fn open_file(filename: &str) -> Box<Read> {
         },
         Some("gz") => {
             debug!("Using GzDecoder as the input decompressor.");
-            Box::new(GzDecoder::new(file).unwrap())
+            Box::new(GzDecoder::new(file))
         },
         Some(_) | None => {
             debug!("Assuming the file is uncompressed.");

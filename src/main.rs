@@ -27,6 +27,8 @@ use helpers::{open_file, extract_ranges};
 mod mapping_file;
 mod source_file;
 
+mod cache;
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -40,7 +42,7 @@ fn main() {
         let source_line_parts = source_line.split(config.source_file.delimiter).collect::<Vec<&str>>();
         let mut output: Vec<String> = vec!();
 
-        // For each mapping file we're 'mapping', extract the source line's column and find it in the mapping file's column
+        // For each mapping file we're 'mapping', find the source line's column mapping key in the mapping file
         for mapping_file in &mut config.mapping_files {
             let source_key = source_line_parts[mapping_file.source_key_index as usize];
 

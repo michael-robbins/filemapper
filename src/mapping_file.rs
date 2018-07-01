@@ -1,6 +1,7 @@
 use std::io::{BufRead,BufReader};
-use std::collections::HashMap;
+
 use helpers::{open_file, match_ranges, extract_ranges};
+use cache::{MappingCache, FiloCache};
 
 
 #[derive(Debug)]
@@ -10,8 +11,8 @@ pub struct MappingFile {
     pub source_key_index: u64,
     pub target_key_index: u64,
     target_match_ranges: Vec<(u32, u32)>,
-    preloaded_mappings: bool,
-    mappings: HashMap<String, Vec<String>>,
+    cache: Box<MappingCache>,
+    cache_enabled: bool,
 }
 
 impl MappingFile {
@@ -22,12 +23,20 @@ impl MappingFile {
             source_key_index: source_key_index,
             target_key_index: target_key_index,
             target_match_ranges: match_ranges(target_match_ranges),
-            preloaded_mappings: false,
-            mappings: HashMap::new(),
+            cache: Box::new(FiloCache::new(0)),
+            cache_enabled: false,
         }
     }
 
-    pub fn load_into_memory(&mut self) {
+    pub fn cache(&mut self, method: &str, size: i64) {
+        if method == "filo" {
+            self.cache = Box::new(FiloCache::new(size))
+        } else {
+            self.cache = Box::new(FiloCache::new(0))
+        }
+
+        self.cache_enabled = true;
+
         for target_line in BufReader::new(open_file(&self.filename)).lines() {
             // Key is target_key_index
             if target_line.is_err() {
@@ -36,20 +45,16 @@ impl MappingFile {
             }
 
             let target_line = target_line.unwrap();
-            let target_key = target_line.split(self.delimiter).nth(self.target_key_index as usize).unwrap();
+            let key = target_line.split(self.delimiter).nth(self.target_key_index as usize).unwrap();
+            let value: Vec<String> = target_line.split(self.delimiter).map(String::from).collect();
 
-            // Value is the line broken into strings
-            let line_pieces: Vec<String> = target_line.split(self.delimiter).map(String::from).collect();
-
-            self.mappings.insert(String::from(target_key), line_pieces);
+            let _ = self.cache.put(String::from(key), value);
         }
-
-        self.preloaded_mappings = true;
     }
 
     pub fn find_match(&self, source_key: &str) -> Option<Vec<String>> {
-        if self.preloaded_mappings {
-            match self.mappings.get(source_key) {
+        if self.cache_enabled {
+            match self.cache.get(source_key.to_string()) {
                 Some(target_line) => {
                     let ref_target_line: Vec<&str> = target_line.iter().map(|s| &**s).collect();
                     Some(extract_ranges(&ref_target_line, &self.target_match_ranges))
